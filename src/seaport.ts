@@ -45,6 +45,7 @@ import type {
   Signer,
   ApprovalAction,
   CreateBulkOrdersAction,
+  GasSetting
 } from "./types";
 import { getApprovalActions } from "./utils/approval";
 import {
@@ -81,6 +82,10 @@ export class Seaport {
   private provider: providers.Provider;
 
   private signer?: Signer;
+
+  public maxFeePerGas: string;
+  public maxPriorityFeePerGas: string;
+  public gasLimit: number;
 
   // Use the multicall provider for reads for batching and performance optimisations
   // NOTE: Do NOT await between sequential requests if you're intending to batch
@@ -137,6 +142,10 @@ export class Seaport {
       seaportVersion === "1.4" ? SeaportABIv14 : SeaportABI,
       this.multicallProvider
     ) as SeaportContract;
+
+    this.maxFeePerGas = "";
+    this.maxPriorityFeePerGas = "";
+    this.gasLimit = 0;
 
     this.domainRegistry = new Contract(
       overrides?.domainRegistryAddress ?? DOMAIN_REGISTRY_ADDRESS,
@@ -873,6 +882,11 @@ export class Seaport {
     }));
 
     const isRecipientSelf = recipientAddress === ethers.constants.AddressZero;
+    const gasSetting: GasSetting = {
+      maxFeePerGas: this.maxFeePerGas,
+      maxPriorityFeePerGas: this.maxPriorityFeePerGas,
+      gasLimit: this.gasLimit,
+    };
 
     // We use basic fulfills as they are more optimal for simple and "hot" use cases
     // We cannot use basic fulfill if user is trying to partially fill though.
@@ -895,6 +909,7 @@ export class Seaport {
           signer: fulfiller,
           tips: tipConsiderationItems,
           domain,
+          gasSetting,
         },
         exactApproval
       );
@@ -923,6 +938,7 @@ export class Seaport {
         fulfillerOperator,
         recipientAddress,
         domain,
+        gasSetting,
       },
       exactApproval
     );
